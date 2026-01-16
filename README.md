@@ -1,189 +1,186 @@
 # MVP Builder Plugin for OpenCode
 
-Automate your entire MVP development workflow. Based on the Ralph Wiggum technique and the MVP Prompt Framework.
+Automate your entire MVP development workflow using the **actual Ralph Wiggum pattern**.
 
-## What It Does
+Based on [snarktank/ralph](https://github.com/snarktank/ralph) - the original Ralph implementation.
 
-**Set it and forget it.** This plugin:
+## How It Works
 
-1. 📋 Reads your `project_overview.md`
-2. 📝 Generates a prompt sequence plan → `prompt_sequence_plan.md`
-3. 🔧 Creates execution prompts → `prompt_01.md` through `prompt_XX.md`
-4. ⚡ Executes each prompt sequentially with git commits
-5. 🔍 Runs QA checks → `integration_issues.md`, `mvp_readiness_report.md`
-6. 📚 Generates documentation → README, DEPLOYMENT, API docs
-7. 🎉 Completes automatically
+**One story per iteration.** Memory lives in files, not context.
 
-**All files are stored in your instructions folder.**
+```
+prd.json       → User stories with passes: true/false
+progress.txt   → Append-only learnings between iterations
+project_overview.md → Your MVP specification
+```
+
+Each iteration:
+1. Read prd.json, pick highest priority story where `passes: false`
+2. Implement that ONE story
+3. Run quality checks (typecheck, lint, test)
+4. Commit if passing
+5. Update prd.json to `passes: true`
+6. Append learnings to progress.txt
+7. Repeat until all stories pass → `<promise>COMPLETE</promise>`
 
 ## Installation
 
-### Option 1: Project-Level Install (Recommended)
-
-Copy to your project's `.opencode/` folder:
+### Project-Level (Recommended)
 
 ```bash
-# From mvp-builder-plugin directory
 cp -r plugin command /path/to/your/project/.opencode/
 ```
 
-### Option 2: Global Install
+### Global
 
-**Windows (PowerShell as Admin):**
+**Windows:**
 ```powershell
-$configPath = "$env:USERPROFILE\.config\opencode"
-New-Item -ItemType Directory -Force -Path "$configPath\plugin"
-New-Item -ItemType Directory -Force -Path "$configPath\command"
-
-Copy-Item .\plugin\* "$configPath\plugin\"
-Copy-Item .\command\* "$configPath\command\"
+Copy-Item .\plugin\* "$env:USERPROFILE\.config\opencode\plugin\"
+Copy-Item .\command\* "$env:USERPROFILE\.config\opencode\command\"
 ```
 
 **Linux/macOS:**
 ```bash
-mkdir -p ~/.config/opencode/plugin ~/.config/opencode/command
 cp plugin/* ~/.config/opencode/plugin/
 cp command/* ~/.config/opencode/command/
 ```
 
 ## Quick Start
 
-1. **Create your project overview:**
-   ```
-   your-project/
-   └── instructions/
-       └── project_overview.md   # Your MVP specification
-   ```
+1. Create `instructions/project_overview.md` with your MVP spec
 
-2. **Start OpenCode:**
-   ```bash
-   opencode
-   ```
-
-3. **Launch the builder:**
+2. Start OpenCode and run:
    ```bash
    /mvp-start
    ```
 
-4. **Walk away.** Check back periodically with `/mvp-status`.
+3. MVP Builder will:
+   - Create `prd.json` from your overview (first iteration)
+   - Work through each story automatically
+   - Commit after each completed story
+   - Stop when all stories pass
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `/mvp-start` | Begin the automated build workflow |
+| `/mvp-start` | Start the automated build |
 | `/mvp-status` | Check current progress |
-| `/mvp-cancel` | Stop the workflow (preserves code) |
-| `/mvp-skip` | Skip current prompt, move to next |
-| `/mvp-help` | Show detailed help |
+| `/mvp-cancel` | Stop the workflow |
+| `/mvp-skip` | Skip current story |
+| `/mvp-help` | Show help |
 
 ## Options
 
 ```bash
 /mvp-start [OPTIONS]
 
---instructions-path <path>  Folder for all generated files (default: instructions)
---reference-docs <paths>    Comma-separated doc paths for context
+--instructions-path <path>  Folder for files (default: instructions)
+--reference-docs <paths>    Comma-separated docs for context
 --max-iterations <n>        Safety limit (default: 100)
 ```
 
-## Reference Docs (For Integrations)
+## prd.json Format
 
-Include documentation for Stripe, Dodo Payments, Convex, etc.:
+```json
+{
+  "project": "MyApp",
+  "branchName": "ralph/feature-name",
+  "description": "Feature description",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add database schema",
+      "description": "As a developer, I need...",
+      "acceptanceCriteria": [
+        "Schema created",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
+```
+
+**Key rules:**
+- Each story should be small (completable in one iteration)
+- Priority 1 = highest (done first)
+- All start with `passes: false`
+- MVP Builder marks `passes: true` when done
+
+## progress.txt Format
+
+Append-only learnings:
+
+```
+## 2026-01-16 - US-001: Add database schema
+- Created users table with id, email, name
+- Files: convex/schema.ts
+- **Learnings:**
+  - Use defineTable() not defineSchema()
+  - Index on email for lookups
+---
+```
+
+## Reference Docs
+
+Include external docs as context:
 
 ```bash
-/mvp-start --reference-docs docs/dodo-payments.md,docs/stripe.md,knowledge/auth.md
+/mvp-start --reference-docs docs/stripe.md,docs/convex.md
 ```
 
-These files are loaded as context for **every prompt execution**.
-
-## File Storage
-
-**All generated files go in your instructions folder:**
-
-```
-instructions/
-├── project_overview.md          # YOUR input (must exist)
-├── prompt_sequence_plan.md      # Step 1 output
-├── prompt_01.md                 # Step 2 output
-├── prompt_02.md
-├── ...
-├── integration_issues.md        # Step 4A output
-└── mvp_readiness_report.md      # Step 4B output
-```
-
-## Workflow Phases
-
-```
-STEP 1 → prompt_sequence_plan.md   (Meta-Prompt 1A)
-STEP 2 → prompt_01.md ... XX.md    (Meta-Prompt 1B)
-STEP 3 → Execute all prompts       (Meta-Prompt 2, loop)
-STEP 4A → integration_issues.md    (Meta-Prompt 3A)
-STEP 4B → mvp_readiness_report.md  (Meta-Prompt 3B)
-STEP 5 → Documentation files       (Meta-Prompt 4)
-STEP 6 → COMPLETE! 🎉
-```
-
-Each step commits to git automatically.
-
-## Starter Kit Support
-
-The plugin is designed for projects with:
-- ✅ Next.js 16 + Convex + Clerk already configured
-- ✅ Google sign-in working
-- ✅ Basic project structure in place
-
-It will skip redundant setup and focus on MVP features.
+These are included in every iteration.
 
 ## Context Window
 
 **Q: What happens when context fills up?**
 
-The Ralph technique handles this:
-- Same prompt fed each iteration (doesn't grow)
-- Progress tracked in files and git history
-- AI reads its work from filesystem, not conversation
-- Each iteration = fresh context + same instructions
+- Each iteration is fresh context
+- Memory lives in files: prd.json, progress.txt, git history
+- The prompt is static - doesn't grow
+- This is the core Ralph insight!
 
-## State File
+## Completion Signals
 
-Progress tracked in `mvp-builder.local.md`:
-```yaml
----
-active: true
-phase: "executing"
-current_prompt_index: 3
-total_prompts: 12
----
-```
-
-Add to `.gitignore`:
-```
-mvp-builder.local.md
-```
+| Signal | Meaning |
+|--------|---------|
+| `<promise>PRD_CREATED</promise>` | prd.json created |
+| `<promise>STORY_COMPLETE</promise>` | One story done |
+| `<promise>COMPLETE</promise>` | ALL stories done |
 
 ## Troubleshooting
 
-**Plugin doesn't load:**
+**Plugin doesn't start:**
 ```bash
-# Check files exist
 ls ~/.config/opencode/plugin/mvp-builder.ts
-ls ~/.config/opencode/command/mvp-*.md
 ```
 
-**Stuck in a loop:**
-```bash
-/mvp-cancel
-# Then restart
-/mvp-start
-```
-
-**Want to skip a prompt:**
+**Stuck on a story:**
 ```bash
 /mvp-skip
 ```
 
-## Based On
-- [Ralph Wiggum Technique](https://ghuntley.com/ralph/)
-- MVP Prompt Framework
+**Reset everything:**
+```bash
+rm mvp-builder.local.md
+rm instructions/prd.json
+rm instructions/progress.txt
+/mvp-start
+```
 
+## Key Differences from v1
+
+| v1 (our old plugin) | v2 (actual Ralph) |
+|---------------------|-------------------|
+| Complex phase machine | Simple story loop |
+| Generated prompt_01..XX.md | Uses prd.json stories |
+| Multi-hour prompts | Small, focused stories |
+| Large context needed | Fresh context each iteration |
+
+## Based On
+
+- [snarktank/ralph](https://github.com/snarktank/ralph) - Original implementation
+- [Geoffrey Huntley's Ralph](https://ghuntley.com/ralph/) - The technique

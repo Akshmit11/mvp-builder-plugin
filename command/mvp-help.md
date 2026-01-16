@@ -4,133 +4,126 @@ description: Get help and overview of the MVP Builder plugin
 
 # MVP Builder Help
 
-Please explain the following to the user:
+Explain the following to the user:
 
 ## What is MVP Builder?
 
-MVP Builder is an OpenCode plugin that automates the complete MVP development workflow. Based on the Ralph Wiggum technique and the MVP Prompt Framework, it eliminates manual prompting by:
+MVP Builder automates your entire development workflow using the **Ralph Wiggum pattern** - a technique for autonomous AI agent loops.
 
-1. Reading your `project_overview.md`
-2. Generating a prompt sequence plan
-3. Creating individual execution prompts
-4. Executing each prompt sequentially
-5. Running QA checks
-6. Generating documentation
+Based on [snarktank/ralph](https://github.com/snarktank/ralph) and [Geoffrey Huntley's original article](https://ghuntley.com/ralph/).
 
-All automatically, with git commits after each step.
+## Core Concept
 
-## Available Commands
+**One story per iteration. Memory lives in files.**
 
-### /mvp-start [OPTIONS]
+Each iteration:
+1. Read prd.json, pick highest priority story where `passes: false`
+2. Implement that ONE story  
+3. Run quality checks
+4. Commit if passing
+5. Update prd.json to `passes: true`
+6. Append learnings to progress.txt
+7. Loop until all stories pass
 
-Start the automated MVP build workflow.
+## Key Files
 
-**Options:**
-- `--max-iterations <n>` - Safety limit for loop iterations (default: 100)
-- `--project-path <path>` - Path to project overview (default: instructions/project_overview.md)
-- `--reference-docs <paths>` - Comma-separated documentation files to include as context
+| File | Purpose |
+|------|---------|
+| `prd.json` | User stories with acceptance criteria and `passes` status |
+| `progress.txt` | Append-only learnings between iterations |
+| `project_overview.md` | Your MVP specification |
+| `mvp-builder.local.md` | Plugin state (add to .gitignore) |
 
-**Example:**
-```
-/mvp-start --reference-docs docs/stripe.md,docs/convex.md --max-iterations 50
-```
+## Commands
 
----
+| Command | Description |
+|---------|-------------|
+| `/mvp-start` | Start the build loop |
+| `/mvp-status` | Check current progress |
+| `/mvp-cancel` | Stop the loop |
+| `/mvp-skip` | Skip current story |
+| `/mvp-help` | Show this help |
 
-### /mvp-status
+## Options
 
-Check the current workflow status, including:
-- Current phase and iteration
-- Prompt completion progress
-- Reference docs loaded
-- Last git commit
+```bash
+/mvp-start [OPTIONS]
 
----
-
-### /mvp-cancel
-
-Stop the current workflow. Your code and git history are preserved.
-
----
-
-## Workflow Phases
-
-```
-START
-  ↓
-┌─────────────────────────────────────┐
-│ Phase 1A: Generate Sequence Plan    │
-│ Input: project_overview.md          │
-│ Output: prompt_sequence_plan.md     │
-└─────────────────────────────────────┘
-  ↓
-┌─────────────────────────────────────┐
-│ Phase 1B: Generate Prompts          │
-│ Output: prompt_01.md ... XX.md      │
-└─────────────────────────────────────┘
-  ↓
-┌─────────────────────────────────────┐
-│ Phase 2: Execute Sequentially       │
-│ Loop: prompt_01 → 02 → ... → XX     │
-│ + Git commit after each             │
-└─────────────────────────────────────┘
-  ↓
-┌─────────────────────────────────────┐
-│ Phase 3A: Integration Check         │
-│ Output: integration_issues.md       │
-└─────────────────────────────────────┘
-  ↓
-┌─────────────────────────────────────┐
-│ Phase 3B: Feature Completeness      │
-│ Output: mvp_readiness_report.md     │
-└─────────────────────────────────────┘
-  ↓
-┌─────────────────────────────────────┐
-│ Phase 4: Documentation              │
-│ Output: README, DEPLOYMENT, etc.    │
-└─────────────────────────────────────┘
-  ↓
-COMPLETE 🎉
+--instructions-path <path>  Where prd.json lives (default: instructions)
+--reference-docs <paths>    Docs to include as context
+--max-iterations <n>        Safety limit (default: 100)
 ```
 
-## Reference Docs Feature
+## prd.json Structure
 
-Include external documentation as context for every prompt:
-
+```json
+{
+  "project": "MyApp",
+  "branchName": "ralph/feature",
+  "description": "Feature description",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Story title",
+      "description": "As a user, I want...",
+      "acceptanceCriteria": ["Criteria 1", "Criteria 2"],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
 ```
-/mvp-start --reference-docs docs/stripe.md,docs/dodo-payments.md,knowledge/auth.md
+
+**Key rules:**
+- Stories should be SMALL (one context window)
+- Priority 1 = highest = done first
+- All start `passes: false`
+- MVP Builder sets `passes: true` when done
+
+## Why One Story Per Iteration?
+
+Context windows are limited. By keeping tasks small:
+- Each iteration has fresh context
+- No context overflow mid-task
+- Progress persists in files, not memory
+- Can resume after any interruption
+
+## Completion Signals
+
+| Signal | Meaning |
+|--------|---------|
+| `<promise>PRD_CREATED</promise>` | Created prd.json |
+| `<promise>STORY_COMPLETE</promise>` | Finished one story |
+| `<promise>COMPLETE</promise>` | ALL stories done! |
+
+## Example Workflow
+
+```bash
+# 1. Create project overview
+echo "My MVP specs..." > instructions/project_overview.md
+
+# 2. Start MVP Builder
+/mvp-start --reference-docs docs/stripe.md
+
+# 3. First iteration creates prd.json
+# 4. Subsequent iterations implement stories
+# 5. Commits after each story
+# 6. Completes when all pass
 ```
 
-These files will be read and included in EVERY prompt execution, giving the AI full context about:
-- Payment integration patterns
-- API documentation
-- Framework-specific guides
-- Your project's specific knowledge
+## Troubleshooting
 
-## Prerequisites
+**Stuck on a story:** `/mvp-skip`
 
-Before running MVP Builder:
+**Reset everything:**
+```bash
+rm mvp-builder.local.md
+rm instructions/prd.json
+rm instructions/progress.txt
+```
 
-1. ✅ `/instructions/project_overview.md` exists with your MVP details
-2. ✅ Clean git state (commit or stash pending changes)
-3. ✅ Time - full build takes 20-40+ hours of autonomous work
-4. ✅ Any reference docs you want included
-
-## Best Practices
-
-1. **Write a detailed project overview** - The more specific, the better the prompts
-2. **Include reference docs** - For integrations like Stripe, Dodo, Clerk
-3. **Set reasonable max iterations** - Start with 50-100
-4. **Monitor occasionally** - Check `/mvp-status` periodically
-5. **Review commits** - Git history shows all changes
-
-## State File
-
-Progress is tracked in `mvp-builder.local.md`:
-- Add to `.gitignore` to avoid committing
-- Delete to reset state
-
-## Learn More
-
-- Original Ralph technique: https://ghuntley.com/ralph/
-- MVP Prompt Framework: Your `mvp_prompt_framework.md`
+**Check progress:**
+```bash
+cat instructions/prd.json | jq '.userStories[] | {id, title, passes}'
+```

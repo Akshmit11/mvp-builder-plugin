@@ -1,54 +1,48 @@
 ---
-description: Skip the current prompt and move to the next one
+description: Skip the current story and move to the next one
 ---
 
 # MVP Skip Command
 
-To skip the current prompt and move to the next, perform these steps:
+To skip the current story:
 
-1. Check if the state file exists at `mvp-builder.local.md`
+1. Load prd.json from instructions path
+2. Find the current story (highest priority where passes: false)
+3. Set that story's `passes: true` (marking it as skipped)
+4. Add a note: "Skipped by user"
+5. Save prd.json
 
-2. If the file does NOT exist:
-   - Report: "No active MVP Builder session found."
-
-3. If the file EXISTS and phase is "executing":
-   - Read the current prompt index
-   - Mark current prompt as "skipped"
-   - Increment the prompt index
-   - If no more prompts, advance to QA phase
-   - Write updated state
-
-4. Report the skip:
-
+Report:
 ```
-⏭️ Skipped Prompt
+⏭️ Skipped Story
 
-Skipped: prompt_XX.md
-Moving to: prompt_YY.md (or "QA Phase" if no more prompts)
+Skipped: US-XXX - Story title
+Reason: Marked as passes: true (skipped by user)
+Next: US-YYY - Next story title
 
-Note: The skipped prompt can be executed later manually.
+Note: The skipped story is marked complete. If you need to
+implement it later, manually set passes: false in prd.json.
 ```
 
 ## When to Use
 
-Use `/mvp-skip` when:
-- A prompt is stuck in an infinite loop
-- You've already implemented the feature manually
-- The prompt requirements have changed
-- You want to defer a feature to later
+- Story is stuck in a loop
+- Already implemented manually
+- Want to defer to later
+- Requirements changed
 
 ## Example
 
-```
+```bash
 /mvp-skip
 ```
 
 Output:
 ```
-⏭️ Skipped Prompt
+⏭️ Skipped Story
 
-Skipped: prompt_03.md - Mock Data & Seed Scripts
-Moving to: prompt_04.md - Feature: User Authentication
+Skipped: US-003 - Add auth middleware
+Next: US-004 - Create dashboard
 
-Note: The skipped prompt can be executed later manually.
+To un-skip: Edit prd.json and set passes: false for US-003
 ```
