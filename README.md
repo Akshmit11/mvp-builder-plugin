@@ -7,55 +7,43 @@ Automate your entire MVP development workflow. Based on the Ralph Wiggum techniq
 **Set it and forget it.** This plugin:
 
 1. 📋 Reads your `project_overview.md`
-2. 📝 Generates a prompt sequence plan
-3. 🔧 Creates individual execution prompts (01-XX)
-4. ⚡ Executes each prompt sequentially
-5. ✅ Commits changes after each step
-6. 🔍 Runs QA integration checks
-7. 📊 Verifies feature completeness
-8. 📚 Generates documentation
-9. 🎉 Outputs completion signal
+2. 📝 Generates a prompt sequence plan → `prompt_sequence_plan.md`
+3. 🔧 Creates execution prompts → `prompt_01.md` through `prompt_XX.md`
+4. ⚡ Executes each prompt sequentially with git commits
+5. 🔍 Runs QA checks → `integration_issues.md`, `mvp_readiness_report.md`
+6. 📚 Generates documentation → README, DEPLOYMENT, API docs
+7. 🎉 Completes automatically
 
-**All automatically, without manual prompting.**
+**All files are stored in your instructions folder.**
 
 ## Installation
 
-### Option 1: Global Install (All Projects)
+### Option 1: Project-Level Install (Recommended)
+
+Copy to your project's `.opencode/` folder:
 
 ```bash
-# Clone the plugin
-git clone https://github.com/your-username/mvp-builder-plugin.git
-cd mvp-builder-plugin
+# From mvp-builder-plugin directory
+cp -r plugin command /path/to/your/project/.opencode/
+```
 
-# Create symlinks to global OpenCode config
-# Windows (PowerShell as Admin):
-New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.config\opencode\plugin\mvp-builder.ts" -Target "$(Get-Location)\plugin\mvp-builder.ts"
-New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.config\opencode\command\mvp-start.md" -Target "$(Get-Location)\command\mvp-start.md"
-New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.config\opencode\command\mvp-status.md" -Target "$(Get-Location)\command\mvp-status.md"
-New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.config\opencode\command\mvp-cancel.md" -Target "$(Get-Location)\command\mvp-cancel.md"
-New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.config\opencode\command\mvp-skip.md" -Target "$(Get-Location)\command\mvp-skip.md"
-New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.config\opencode\command\mvp-help.md" -Target "$(Get-Location)\command\mvp-help.md"
+### Option 2: Global Install
 
-# Linux/macOS:
+**Windows (PowerShell as Admin):**
+```powershell
+$configPath = "$env:USERPROFILE\.config\opencode"
+New-Item -ItemType Directory -Force -Path "$configPath\plugin"
+New-Item -ItemType Directory -Force -Path "$configPath\command"
+
+Copy-Item .\plugin\* "$configPath\plugin\"
+Copy-Item .\command\* "$configPath\command\"
+```
+
+**Linux/macOS:**
+```bash
 mkdir -p ~/.config/opencode/plugin ~/.config/opencode/command
-ln -s "$(pwd)/plugin/mvp-builder.ts" ~/.config/opencode/plugin/mvp-builder.ts
-ln -s "$(pwd)/command/"*.md ~/.config/opencode/command/
-```
-
-### Option 2: Project-Level Install
-
-```bash
-# Copy to your project's .opencode folder
-cp -r mvp-builder-plugin/plugin your-project/.opencode/
-cp -r mvp-builder-plugin/command your-project/.opencode/
-```
-
-### Option 3: Direct Copy
-
-```bash
-# Copy files directly
-cp plugin/mvp-builder.ts ~/.config/opencode/plugin/
-cp command/*.md ~/.config/opencode/command/
+cp plugin/* ~/.config/opencode/plugin/
+cp command/* ~/.config/opencode/command/
 ```
 
 ## Quick Start
@@ -64,12 +52,11 @@ cp command/*.md ~/.config/opencode/command/
    ```
    your-project/
    └── instructions/
-       └── project_overview.md
+       └── project_overview.md   # Your MVP specification
    ```
 
-2. **Start OpenCode in your project:**
+2. **Start OpenCode:**
    ```bash
-   cd your-project
    opencode
    ```
 
@@ -78,7 +65,7 @@ cp command/*.md ~/.config/opencode/command/
    /mvp-start
    ```
 
-4. **Walk away.** The plugin handles everything.
+4. **Walk away.** Check back periodically with `/mvp-status`.
 
 ## Commands
 
@@ -95,65 +82,72 @@ cp command/*.md ~/.config/opencode/command/
 ```bash
 /mvp-start [OPTIONS]
 
---max-iterations <n>      Safety limit (default: 100)
---project-path <path>     Custom overview path (default: instructions/project_overview.md)
---reference-docs <paths>  Comma-separated doc paths for context
+--instructions-path <path>  Folder for all generated files (default: instructions)
+--reference-docs <paths>    Comma-separated doc paths for context
+--max-iterations <n>        Safety limit (default: 100)
 ```
 
-### Reference Docs Example
+## Reference Docs (For Integrations)
 
-Include documentation for integrations like Stripe, Dodo Payments, or Convex:
+Include documentation for Stripe, Dodo Payments, Convex, etc.:
 
 ```bash
-/mvp-start --reference-docs docs/stripe-api.md,docs/convex-guide.md,knowledge/auth-patterns.md
+/mvp-start --reference-docs docs/dodo-payments.md,docs/stripe.md,knowledge/auth.md
 ```
 
-These files are included as context for **every prompt execution**, giving the AI complete knowledge about:
-- Payment integration patterns
-- Database/backend specifics
-- Authentication flows
-- Your project's specific conventions
+These files are loaded as context for **every prompt execution**.
+
+## File Storage
+
+**All generated files go in your instructions folder:**
+
+```
+instructions/
+├── project_overview.md          # YOUR input (must exist)
+├── prompt_sequence_plan.md      # Step 1 output
+├── prompt_01.md                 # Step 2 output
+├── prompt_02.md
+├── ...
+├── integration_issues.md        # Step 4A output
+└── mvp_readiness_report.md      # Step 4B output
+```
 
 ## Workflow Phases
 
 ```
-┌────────────────────────────────────┐
-│ 1A: Generate Prompt Sequence Plan  │
-│     → prompt_sequence_plan.md      │
-└────────────────────────────────────┘
-           ↓
-┌────────────────────────────────────┐
-│ 1B: Generate Execution Prompts     │
-│     → prompt_01.md ... prompt_XX.md│
-└────────────────────────────────────┘
-           ↓
-┌────────────────────────────────────┐
-│ 2: Execute Prompts Sequentially    │
-│    For each: Execute → Test → Git  │
-└────────────────────────────────────┘
-           ↓
-┌────────────────────────────────────┐
-│ 3A: QA Integration Check           │
-│     → integration_issues.md        │
-└────────────────────────────────────┘
-           ↓
-┌────────────────────────────────────┐
-│ 3B: Feature Completeness Audit     │
-│     → mvp_readiness_report.md      │
-└────────────────────────────────────┘
-           ↓
-┌────────────────────────────────────┐
-│ 4: Generate Documentation          │
-│    → README, DEPLOYMENT, API docs  │
-└────────────────────────────────────┘
-           ↓
-        COMPLETE 🎉
+STEP 1 → prompt_sequence_plan.md   (Meta-Prompt 1A)
+STEP 2 → prompt_01.md ... XX.md    (Meta-Prompt 1B)
+STEP 3 → Execute all prompts       (Meta-Prompt 2, loop)
+STEP 4A → integration_issues.md    (Meta-Prompt 3A)
+STEP 4B → mvp_readiness_report.md  (Meta-Prompt 3B)
+STEP 5 → Documentation files       (Meta-Prompt 4)
+STEP 6 → COMPLETE! 🎉
 ```
+
+Each step commits to git automatically.
+
+## Starter Kit Support
+
+The plugin is designed for projects with:
+- ✅ Next.js 16 + Convex + Clerk already configured
+- ✅ Google sign-in working
+- ✅ Basic project structure in place
+
+It will skip redundant setup and focus on MVP features.
+
+## Context Window
+
+**Q: What happens when context fills up?**
+
+The Ralph technique handles this:
+- Same prompt fed each iteration (doesn't grow)
+- Progress tracked in files and git history
+- AI reads its work from filesystem, not conversation
+- Each iteration = fresh context + same instructions
 
 ## State File
 
-Progress is tracked in `mvp-builder.local.md`:
-
+Progress tracked in `mvp-builder.local.md`:
 ```yaml
 ---
 active: true
@@ -168,104 +162,31 @@ Add to `.gitignore`:
 mvp-builder.local.md
 ```
 
-## Prerequisites
-
-Before running:
-
-- ✅ `instructions/project_overview.md` with detailed MVP specs
-- ✅ Clean git state (commit pending changes)
-- ✅ Time - full build: 20-40+ hours autonomous work
-- ✅ Sufficient API credits for your AI provider
-
-## Project Overview Template
-
-Create `instructions/project_overview.md`:
-
-```markdown
-# Project Name
-
-## Problem Statement
-What problem does this solve?
-
-## ICP (Ideal Customer Profile)
-Who is this for?
-
-## MVP Features
-1. Feature 1 - description
-2. Feature 2 - description
-...
-
-## Tech Stack
-- Frontend: Next.js 14, React, TailwindCSS
-- Backend: Convex
-- Auth: Clerk
-- Payments: Stripe / Dodo
-
-## User Flow
-1. User lands on homepage
-2. Signs up with Clerk
-3. ...
-
-## Design Guide
-- Primary color: #...
-- Typography: Inter
-- Style: Modern, minimal
-```
-
-## Tips for Best Results
-
-1. **Detailed project overview** → Better generated prompts
-2. **Include reference docs** → Accurate integrations
-3. **Monitor occasionally** → `/mvp-status`
-4. **Review git history** → See all changes
-5. **Set max iterations** → Safety net
-
 ## Troubleshooting
 
-**Q: Plugin doesn't load**
+**Plugin doesn't load:**
 ```bash
-# Check plugin path
+# Check files exist
 ls ~/.config/opencode/plugin/mvp-builder.ts
+ls ~/.config/opencode/command/mvp-*.md
 ```
 
-**Q: Stuck in a loop**
+**Stuck in a loop:**
 ```bash
 /mvp-cancel
-# Then restart with /mvp-start
+# Then restart
+/mvp-start
 ```
 
-**Q: Want to skip a prompt**
+**Want to skip a prompt:**
 ```bash
 /mvp-skip
 ```
 
-**Q: Commands not recognized**
-```bash
-# Ensure command files are in place
-ls ~/.config/opencode/command/mvp-*.md
-```
-
-## Files
-
-```
-mvp-builder-plugin/
-├── plugin/
-│   └── mvp-builder.ts      # Main plugin logic
-├── command/
-│   ├── mvp-start.md        # Start workflow
-│   ├── mvp-status.md       # Check status
-│   ├── mvp-cancel.md       # Cancel workflow
-│   ├── mvp-skip.md         # Skip prompt
-│   └── mvp-help.md         # Help docs
-├── opencode.json           # Plugin config
-├── .gitignore
-└── README.md
-```
-
 ## Based On
 
-- [Ralph Wiggum Technique](https://ghuntley.com/ralph/) by Geoffrey Huntley
-- MVP Prompt Framework for systematic AI-driven development
+- [Ralph Wiggum Technique](https://ghuntley.com/ralph/)
+- MVP Prompt Framework
 
 ## License
 
