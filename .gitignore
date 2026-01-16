@@ -1,0 +1,10 @@
+# Local state files
+mvp-builder.local.md
+ralph-loop.local.md
+
+# Generated during build (optional - you may want to commit these)
+# instructions/prompt_sequence_plan.md
+# instructions/prompt_*.md
+
+# Node
+node_modules/
