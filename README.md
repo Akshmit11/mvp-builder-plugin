@@ -184,10 +184,6 @@ ls ~/.config/opencode/command/mvp-*.md
 ```
 
 ## Based On
-
 - [Ralph Wiggum Technique](https://ghuntley.com/ralph/)
 - MVP Prompt Framework
 
-## License
-
-MIT
