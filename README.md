@@ -266,7 +266,3 @@ mvp-builder-plugin/
 
 - [Ralph Wiggum Technique](https://ghuntley.com/ralph/) by Geoffrey Huntley
 - MVP Prompt Framework for systematic AI-driven development
-
-## License
-
-MIT
